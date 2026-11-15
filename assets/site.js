@@ -15,27 +15,6 @@
     a.addEventListener('click', function () { setNav(false); });
   });
 
-  // Top bar: hide when scrolling down, show again when scrolling up or near the top.
-  var bar = document.querySelector('.topbar');
-  if (bar) {
-    var lastY = window.scrollY, ticking = false;
-    var update = function () {
-      ticking = false;
-      var y = Math.max(0, window.scrollY);
-      var dy = y - lastY;
-      if (body.classList.contains('nav-open') || y < 80) { bar.classList.remove('hide'); lastY = y; return; }
-      if (Math.abs(dy) < 8) return; // ignore tiny jitter
-      bar.classList.toggle('hide', dy > 0);
-      lastY = y;
-    };
-    window.addEventListener('scroll', function () {
-      if (!ticking) { ticking = true; requestAnimationFrame(update); }
-    }, { passive: true });
-    // Keyboard users tabbing into the bar always see it.
-    bar.addEventListener('focusin', function () { bar.classList.remove('hide'); });
-    update();
-  }
-
   // Light or dark, remembered per browser.
   var themeBtn = document.getElementById('theme-btn');
   if (themeBtn) themeBtn.addEventListener('click', function () {
