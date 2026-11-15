@@ -70,16 +70,20 @@ a:hover { text-decoration-thickness: 2px; }
 .skip:focus { left: 8px; }
 
 /* ---------- top bar ---------- */
-/* Minimal bar: menu, name, theme. Slides away on scroll down, back on scroll up (site.js). */
+/* Minimal bar: menu, name, theme. Slides away on scroll down, back on scroll up (site.js).
+   Frosted rather than solid, and fully hidden once gone, so phone browsers show the page
+   blurred behind the status bar instead of a solid strip. (No theme-color meta for the same reason.) */
 .topbar {
   position: sticky; top: 0; z-index: 30; height: var(--top);
   display: flex; align-items: center; gap: 4px; padding: 0 8px;
-  background: var(--bg);
-  border-bottom: 1px solid transparent;
-  transition: transform 0.25s ease, border-color 0.2s ease;
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  backdrop-filter: blur(16px) saturate(1.3); -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  transition: transform 0.25s ease, visibility 0s linear 0s;
 }
-.topbar.scrolled { border-bottom-color: var(--line); }
-.topbar.hide { transform: translateY(-100%); }
+.topbar.hide {
+  transform: translateY(-100%); visibility: hidden;
+  transition: transform 0.25s ease, visibility 0s linear 0.25s;
+}
 .brand { padding: 0 6px; color: var(--ink); text-decoration: none; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
 .icon-btn {
   display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 8px;

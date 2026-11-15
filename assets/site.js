@@ -23,7 +23,6 @@
       ticking = false;
       var y = Math.max(0, window.scrollY);
       var dy = y - lastY;
-      bar.classList.toggle('scrolled', y > 4);
       if (body.classList.contains('nav-open') || y < 80) { bar.classList.remove('hide'); lastY = y; return; }
       if (Math.abs(dy) < 8) return; // ignore tiny jitter
       bar.classList.toggle('hide', dy > 0);
