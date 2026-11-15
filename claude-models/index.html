@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Claude Models Guide · Learning</title>
+<meta name="description" content="Start with Opus 5.5 for most work. Drop to Sonnet 5.5 or Haiku 5.5 to save cost and time, and step up to Fable 5.1 only when Opus at high effort still fails.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c96442'/%3E%3Cpath d='M9 22V10h3v9.5h7V22z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/site.css">
+<script>try{var t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menu-btn" aria-label="Open topics" aria-controls="sidebar" aria-expanded="false">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 8h16M4 16h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+  </button>
+  <a class="brand" href="/">Learning</a>
+  <button class="icon-btn theme-btn" id="theme-btn" aria-label="Switch light or dark">
+    <svg class="sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <svg class="moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+  </button>
+</header>
+<div class="scrim" id="scrim" hidden></div>
+<div class="layout">
+
+<nav class="sidebar" id="sidebar" aria-label="Topics">
+  <a class="side-home" href="/">All topics</a>
+  <ol class="side-list">
+    <li class="active">
+      <a href="/claude-models/" aria-current="page">Claude Models Guide</a>
+      <ol class="toc"><li><a href="#lineup-at-a-glance">Lineup at a glance</a></li><li><a href="#fable-51-the-top-tier">Fable 5.1: the top tier</a></li><li><a href="#opus-55-the-default">Opus 5.5: the default</a></li><li><a href="#sonnet-55-best-value">Sonnet 5.5: best value</a></li><li><a href="#haiku-55-fast-and-cheap">Haiku 5.5: fast and cheap</a></li><li><a href="#mythos-51-restricted">Mythos 5.1: restricted</a></li><li><a href="#effort-and-combining-models">Effort and combining models</a></li><li><a href="#quick-decision-guide">Quick decision guide</a></li><li><a href="#sources">Sources</a></li></ol>
+    </li><li>
+      <a href="/browser-and-computer-use/">Browser &amp; computer use</a>
+      
+    </li><li>
+      <a href="/hermes-agent/">Hermes Agent</a>
+      
+    </li><li>
+      <a href="/context-engineering/">Context Engineering</a>
+      
+    </li><li>
+      <a href="/claude-duet/">Claude Duet</a>
+      
+    </li><li>
+      <a href="/agent-harnesses/">Agent Harnesses</a>
+      
+    </li><li>
+      <a href="/tailscale/">Tailscale</a>
+      
+    </li>
+  </ol>
+</nav>
+<main id="main" class="main">
+<article class="prose">
+<h1 id="claude-models-guide">Claude Models Guide</h1>
+<p class="meta">Updated <time datetime="2026-11-01">1 Nov 2026</time></p>
+<p>Start with Opus 5.5 for most work. Drop to Sonnet 5.5 or Haiku 5.5 to save cost and time, and step up to Fable 5.1 only when Opus at high effort still fails.</p>
+<h2 id="lineup-at-a-glance">Lineup at a glance<a class="anchor" href="#lineup-at-a-glance" aria-label="Link to this section">#</a></h2>
+<div class="table-wrap"><table><thead><tr><th>Model</th><th>API ID</th><th>Role</th><th>Speed</th><th>Price per 1M tokens (in / out)</th><th>Default effort</th><th>Released</th></tr></thead><tbody><tr><td><a href="https://platform.claude.com/docs/en/models/fable-5-1/overview" target="_blank" rel="noopener">Fable 5.1</a></td><td>claude-fable-5-1</td><td>Hardest, longest tasks</td><td>Slowest</td><td>$10 / $50</td><td>high</td><td>1 Sep 2026</td></tr><tr><td><a href="https://platform.claude.com/docs/en/models/opus-5-5/overview" target="_blank" rel="noopener">Opus 5.5</a></td><td>claude-opus-5-5</td><td>Default for serious work</td><td>Moderate</td><td>$4 / $20</td><td>medium</td><td>22 Sep 2026</td></tr><tr><td><a href="https://platform.claude.com/docs/en/models/sonnet-5-5/overview" target="_blank" rel="noopener">Sonnet 5.5</a></td><td>claude-sonnet-5-5</td><td>Speed and intelligence balance</td><td>Fast</td><td>$2 / $10</td><td>high</td><td>28 Sep 2026</td></tr><tr><td><a href="https://platform.claude.com/docs/en/models/haiku-5-5/overview" target="_blank" rel="noopener">Haiku 5.5</a></td><td>claude-haiku-5-5</td><td>High volume, low latency</td><td>Fastest</td><td>from $0.10 / $0.50</td><td>medium</td><td>7 Oct 2026</td></tr><tr><td>Mythos 5.1</td><td>claude-mythos-5-1</td><td>Fable without extra safeguards, verified orgs only</td><td>Slowest</td><td>$10 / $50</td><td>high</td><td>1 Sep 2026</td></tr></tbody></table></div>
+<p>All five share a 1M token context window, 128K max output, a June 2026 knowledge cutoff, and text plus image input with vision and tool use. Context length does not separate the tiers; price, speed and reasoning depth do.</p>
+<h2 id="fable-51-the-top-tier">Fable 5.1: the top tier<a class="anchor" href="#fable-51-the-top-tier" aria-label="Link to this section">#</a></h2>
+<p>Anthropic&#39;s most capable model open to all customers, in the Mythos class above Opus. It shares one underlying model with Mythos 5.1 but adds safeguards for biology, cybersecurity and LLM R&amp;D.</p>
+<p><strong>Use it when</strong></p>
+<ul><li><p>A task runs for hours across many steps and must stay coherent from start to finish.</p></li><li><p>Research has to end in a finished document, spreadsheet or deck, not just notes.</p></li><li><p>You tried Opus 5.5 at xhigh or max effort and it still fell short.</p></li></ul>
+<p><strong>Examples</strong></p>
+<ul><li><p>Research every AI training data broker in Europe, compare licensing terms, build a spreadsheet, then write a 20-page report and a deck, in one unattended run.</p></li><li><p>Migrate a large legacy codebase to a new framework where a mistake in hour 1 breaks hour 4.</p></li><li><p>A hard quantitative or scientific problem where Opus keeps getting the logic subtly wrong.</p></li></ul>
+<p><strong>Don&#39;t use it when</strong></p>
+<ul><li><p>The task is ordinary: an email, a PDF summary, a bug fix, a blog post. You pay 2.5x Opus prices and wait longer for no visible gain.</p></li><li><p>Speed matters. It is the slowest model, so it suits no live chat or real-time UI.</p></li><li><p>Volume is high. Thousands of product descriptions on Fable burns budget.</p></li><li><p>You assume bigger means better on everything. Artificial Analysis scores Fable 5.1 at 53 on its general index, below Opus 5.5 and Sonnet 5.5 at 56. Its edge is long, hard work.</p></li><li><p>The work touches sensitive biology or security topics. Its classifiers may refuse, and you then retry on another model.</p></li></ul>
+<p><strong>API notes:</strong> forced tool use returns an error, and editing earlier turns invalidates thinking blocks. Cache reads cost only $0.25 per 1M tokens, so reused long contexts are cheaper than the headline price.</p>
+<h2 id="opus-55-the-default">Opus 5.5: the default<a class="anchor" href="#opus-55-the-default" aria-label="Link to this section">#</a></h2>
+<p>Built for long-running agentic coding and knowledge work, with adaptive thinking always on. Anthropic recommends it as the starting point for most workloads.</p>
+<p><strong>Use it when</strong></p>
+<ul><li><p>You need strong reasoning without Fable&#39;s cost.</p></li><li><p>The work is ambiguous and needs sustained judgment; Anthropic says Opus stays clearly ahead of Sonnet here.</p></li><li><p>Accuracy outweighs cost: business plans, legal or financial analysis, strategy, research synthesis.</p></li><li><p>You run multi-hour coding agents, large refactors, vision-heavy workflows or computer use.</p></li></ul>
+<p><strong>Examples</strong></p>
+<ul><li><p>Build a full website from a brand system, including components, copy and responsive layout, in one session.</p></li><li><p>Review a business plan for logical holes, weak assumptions and missing financials.</p></li><li><p>Operate a browser or desktop app to finish a multi-step workflow.</p></li><li><p>Read a 300-page contract set and flag conflicting clauses.</p></li></ul>
+<p><strong>Don&#39;t use it when</strong></p>
+<ul><li><p>The task is simple and repetitive, like classifying 50,000 tickets or extracting invoice fields. Haiku does it for a fraction of the cost.</p></li><li><p>You need instant replies for thousands of users. Use Sonnet or Haiku.</p></li><li><p>Opus has truly hit its ceiling on a long, hard task. That is Fable&#39;s job.</p></li></ul>
+<p><strong>Tip:</strong> default effort is medium. Raise or lower effort before switching models; Anthropic calls it often the better lever.</p>
+<h2 id="sonnet-55-best-value">Sonnet 5.5: best value<a class="anchor" href="#sonnet-55-best-value" aria-label="Link to this section">#</a></h2>
+<p>Nearly matches Opus at half the price. It is over 30% faster at generating text than Sonnet 5 and uses fewer tokens for the same work.</p>
+<div class="table-wrap"><table><thead><tr><th>Benchmark</th><th>Sonnet 5.5</th><th>Opus 5.5</th><th>Fable 5.1</th></tr></thead><tbody><tr><td>Vals Index</td><td>69.22%</td><td>69.69%</td><td>68.83%</td></tr><tr><td>GDPval-AA (real-world work)</td><td>1844</td><td>1846</td><td></td></tr><tr><td>Terminal-Bench 4.0</td><td>70.6%</td><td>66.4%</td><td></td></tr></tbody></table></div>
+<p><strong>Use it when</strong></p>
+<ul><li><p>Everyday coding, writing and analysis.</p></li><li><p>You build a product on the API and need good quality at reasonable cost and latency.</p></li><li><p>Terminal and command-line agent work, where it beats Opus on Terminal-Bench.</p></li></ul>
+<p><strong>Examples</strong></p>
+<ul><li><p>A Python script that cleans a CSV and charts it.</p></li><li><p>20 LinkedIn posts in a set brand voice.</p></li><li><p>An n8n or Zapier step that rewrites captions or summarises inbound email.</p></li><li><p>A daily coding assistant in your IDE.</p></li><li><p>Explaining the trends in a dashboard screenshot.</p></li></ul>
+<p><strong>Don&#39;t use it when</strong></p>
+<ul><li><p>The problem is deeply ambiguous and needs judgment across many steps. Use Opus.</p></li><li><p>You push effort to max to make it work. At high effort its quality and cost converge with Opus, so use Opus.</p></li><li><p>Volume is huge and the task trivial. Haiku is about 20x cheaper on input.</p></li></ul>
+<h2 id="haiku-55-fast-and-cheap">Haiku 5.5: fast and cheap<a class="anchor" href="#haiku-55-fast-and-cheap" aria-label="Link to this section">#</a></h2>
+<p>Built for high-volume, latency-sensitive tasks such as classification, extraction and routing. It is the cheapest model by far, from $0.10 per 1M input tokens.</p>
+<p><strong>Use it when</strong></p>
+<ul><li><p>You process many items with clear rules.</p></li><li><p>You need near-instant responses.</p></li><li><p>It is one worker in a larger system, taking orders from a bigger model.</p></li></ul>
+<p><strong>Examples</strong></p>
+<ul><li><p>Sort 100,000 emails into lead, support, spam or partnership.</p></li><li><p>Pull name, company, price and date from thousands of PDFs into JSON.</p></li><li><p>Route each user message to the right model or tool.</p></li><li><p>Moderate comments on a social page.</p></li><li><p>Live autocomplete or chat suggestions in an app.</p></li><li><p>Subagents that each summarise one webpage while Opus combines the results.</p></li></ul>
+<p><strong>Don&#39;t use it when</strong></p>
+<ul><li><p>The task needs deep reasoning or nuance: strategy, code architecture, persuasive long-form writing, multi-step research.</p></li><li><p>Errors are expensive. A misread clause or wrong figure costs more than the savings.</p></li><li><p>The task is long and autonomous. It suits short, well-defined jobs.</p></li></ul>
+<h2 id="mythos-51-restricted">Mythos 5.1: restricted<a class="anchor" href="#mythos-51-restricted" aria-label="Link to this section">#</a></h2>
+<p>The same model and pricing as Fable 5.1, without the extra safeguards. Access is limited to organizations verified through Anthropic programs such as the <a href="https://support.claude.com/en/articles/14604842" target="_blank" rel="noopener">Cyber Verification Program</a>.</p>
+<ul><li><p><strong>Use it when:</strong> you are a verified organization doing work Fable&#39;s safeguards block, typically defensive cybersecurity such as finding and patching vulnerabilities.</p></li><li><p><strong>Skip it when:</strong> you are an individual or a regular business. You cannot get access, and Fable gives identical capability for everything else.</p></li></ul>
+<h2 id="effort-and-combining-models">Effort and combining models<a class="anchor" href="#effort-and-combining-models" aria-label="Link to this section">#</a></h2>
+<p>These two levers often matter more than which model you pick.</p>
+<ul><li><p><strong>Effort level:</strong> every current model lets you dial thinking depth up or down. Sonnet on low effort is fast and cheap; Opus on high effort is slower but sharper. Try a different effort before a different model.</p></li><li><p><strong>Combining models:</strong> pair a cheap model with a frontier one so most tokens bill at the lower rate. Either an executor escalates hard decisions to an advisor, or an orchestrator delegates bulk work to cheaper workers. Example: Opus plans a research task, ten Haiku subagents each summarise sources, and Opus writes the final report.</p></li></ul>
+<h2 id="quick-decision-guide">Quick decision guide<a class="anchor" href="#quick-decision-guide" aria-label="Link to this section">#</a></h2>
+<div class="table-wrap"><table><thead><tr><th>If your situation is</th><th>Use</th></tr></thead><tbody><tr><td>Chatting, writing or normal work</td><td>Opus 5.5, or Sonnet 5.5 for faster replies</td></tr><tr><td>Building an app where cost matters</td><td>Sonnet 5.5</td></tr><tr><td>Processing thousands of items</td><td>Haiku 5.5</td></tr><tr><td>Needs to respond instantly</td><td>Haiku 5.5</td></tr><tr><td>Multi-hour autonomous task where Opus failed</td><td>Fable 5.1</td></tr><tr><td>Defensive security work at a verified org</td><td>Mythos 5.1</td></tr></tbody></table></div>
+<p>Older models (Opus 5, Sonnet 5, Fable 5, Haiku 4.5 and others) are being phased out; Sonnet 4.5 retires on 30 November 2026. Move any automation pinned to an old model ID onto the 5.5 IDs. Which models appear in the claude.ai picker depends on your plan; see <a href="https://support.claude.com" target="_blank" rel="noopener">Claude support</a>.</p>
+<h2 id="sources">Sources<a class="anchor" href="#sources" aria-label="Link to this section">#</a></h2>
+<ul><li><p><a href="https://platform.claude.com/docs/en/models/overview" target="_blank" rel="noopener">Models overview, Claude Platform Docs</a></p></li><li><p><a href="https://platform.claude.com/docs/en/about-claude/models/choosing-a-model" target="_blank" rel="noopener">Choosing the right model, Claude Platform Docs</a></p></li><li><p><a href="https://platform.claude.com/docs/en/models/fable-5-1/overview" target="_blank" rel="noopener">Claude Fable 5.1, Claude Platform Docs</a></p></li><li><p><a href="https://smhn.info/202609-anthropic-claude-sonnet-5-5-astra-fable" target="_blank" rel="noopener">Sonnet 5.5 launch coverage, smhn.info</a></p></li><li><p><a href="https://www.ssdnodes.com/learn/lang/it/claude-model-versions-and-names" target="_blank" rel="noopener">Claude model versions timeline, SSD Nodes</a></p></li><li><p><a href="https://www.orcarouter.ai/de/blog/claude-fable-5-5" target="_blank" rel="noopener">Fable explainer with Artificial Analysis scores, OrcaRouter</a></p></li></ul>
+
+</article>
+<nav class="pager" aria-label="Next and previous">
+  <span></span>
+  <a class="next" href="/browser-and-computer-use/"><span>Next</span>Browser &amp; computer use</a>
+</nav>
+<footer class="footer">Synced from the Claude Models Guide doc. Built 15 Nov 2026.</footer>
+</main>
+</div>
+<script src="/assets/site.js" defer></script>
+</body>
+</html>
