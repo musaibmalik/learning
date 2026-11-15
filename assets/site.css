@@ -57,17 +57,24 @@
 }
 
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; scroll-padding-top: 16px; }
+/* The page colour lives on html, not body: with viewport-fit=cover and no theme-color,
+   Safari shows it behind its status bar and toolbar and in the overscroll area. */
+html {
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%; scroll-padding-top: calc(env(safe-area-inset-top) + 16px);
+}
+/* Text and controls stay inside the safe area (notch, home indicator, landscape sides). */
 body {
-  margin: 0; background: var(--bg); color: var(--ink);
+  margin: 0; color: var(--ink);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   font: 16px/1.65 var(--sans); -webkit-font-smoothing: antialiased;
 }
 a { color: var(--link); text-underline-offset: 2px; text-decoration-thickness: 1px; }
 a:hover { text-decoration-thickness: 2px; }
 :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
 
-.skip { position: absolute; left: -999px; top: 8px; background: var(--surface); padding: 8px 12px; z-index: 100; }
-.skip:focus { left: 8px; }
+.skip { position: absolute; left: -999px; top: calc(env(safe-area-inset-top) + 8px); background: var(--surface); padding: 8px 12px; z-index: 100; }
+.skip:focus { left: calc(env(safe-area-inset-left) + 8px); }
 
 /* ---------- top bar ---------- */
 /* No fixed bar: menu, name and theme sit at the top of the page and scroll away with it,
@@ -98,7 +105,10 @@ a:hover { text-decoration-thickness: 2px; }
 .sidebar {
   position: fixed; z-index: 40; top: 0; bottom: 0; left: 0; width: min(82vw, 300px);
   background: var(--bg); border-right: 1px solid var(--line);
-  padding: 20px 20px 32px; overflow-y: auto; transform: translateX(-105%);
+  /* The drawer's panel reaches the screen edges; its links stay inside the safe area. */
+  width: min(calc(82vw + env(safe-area-inset-left)), calc(300px + env(safe-area-inset-left)));
+  padding: calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 32px) calc(env(safe-area-inset-left) + 20px);
+  overflow-y: auto; transform: translateX(-105%);
   transition: transform 0.22s ease;
 }
 body.nav-open .sidebar { transform: none; }
@@ -129,8 +139,8 @@ body.nav-open { overflow: hidden; }
   .topbar { padding: 0 20px; }
   .layout { display: grid; grid-template-columns: var(--side) minmax(0, 1fr); }
   .sidebar {
-    position: sticky; top: 0; height: 100vh; width: auto;
-    padding: 24px 20px 32px 26px;
+    position: sticky; top: 0; height: 100vh; height: 100dvh; width: auto;
+    padding: calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 32px) 26px;
     transform: none; background: transparent; border-right: 0; z-index: 1; transition: none;
   }
   .scrim { display: none !important; }
