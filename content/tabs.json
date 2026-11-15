@@ -1,0 +1,17 @@
+{
+  "doc": {
+    "id": "a06f57ef-e918-464f-9363-112b52759502",
+    "title": "Claude Models Guide",
+    "siteTitle": "Learning",
+    "domain": "learning.1981.codes"
+  },
+  "tabs": [
+    { "id": "09eab259-0810", "slug": "claude-models", "name": "Claude Models Guide" },
+    { "id": "d6f5282b-ecb2", "slug": "browser-and-computer-use", "name": "Browser & computer use" },
+    { "id": "264e0a9b-c8ee", "slug": "hermes-agent", "name": "Hermes Agent" },
+    { "id": "0b60ba7c-f32b", "slug": "context-engineering", "name": "Context Engineering" },
+    { "id": "e4209544-ee51", "slug": "claude-duet", "name": "Claude Duet" },
+    { "id": "6a32f291-da4d", "slug": "agent-harnesses", "name": "Agent Harnesses" },
+    { "id": "71d64ddd-b93a", "slug": "tailscale", "name": "Tailscale" }
+  ]
+}

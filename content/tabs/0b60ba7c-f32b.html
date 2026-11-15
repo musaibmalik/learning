@@ -1,0 +1,215 @@
+<h1 id="context-engineering">Context Engineering</h1>
+<p><time data-atom="date" datetime="2026-11-05">2026-11-05</time></p>
+<p>Context engineering means deciding exactly what information an AI sees at each step, not just how you word the instruction. Anthropic&#39;s rule of thumb: give the model the smallest set of genuinely useful information that gets the job done. More is not better; past a point, extra text makes the model worse.</p>
+<h2 id="what-it-is">What it is</h2>
+<p>Every time Claude answers, it reads a block of text called the <strong>context window</strong>: its instructions, the tools it can use, the conversation so far, files it has opened, search results, and your latest message. That whole block is the &quot;context&quot;.</p>
+<p>Anthropic&#39;s Applied AI team made the term popular in a September 2025 engineering post, describing it as the natural next step after prompt engineering. They define it as the strategies for curating and maintaining the best set of tokens the model sees, including everything that lands there besides the prompt itself.</p>
+<table><thead><tr><th></th><th>Prompt engineering</th><th>Context engineering</th></tr></thead><tbody><tr><td>Question it answers</td><td>How do I word this instruction?</td><td>What should the model be looking at right now?</td></tr><tr><td>Scope</td><td>One prompt, usually the system prompt</td><td>Everything in the window: instructions, tools, examples, history, files, memory</td></tr><tr><td>When you do it</td><td>Once, then tweak</td><td>Every turn, as the agent works</td></tr><tr><td>Typical use</td><td>One-shot tasks: classify, write, summarise</td><td>Agents that work for minutes or hours using tools in a loop</td></tr><tr><td>Analogy</td><td>Writing a clear brief for a new hire</td><td>Deciding what sits on their desk, what goes in the filing cabinet, and what they write in their notebook, all day long</td></tr></tbody></table>
+<h2 id="why-it-matters">Why it matters</h2>
+<p><strong>1. Context rot.</strong> As the window fills, the model gets worse at recalling details from it. Anthropic notes this happens in every model, gently in some, sharply in others. It is a slope, not a cliff: the model still works, just less precisely.</p>
+<p><strong>2. The attention budget.</strong> Like a person&#39;s working memory, a model has a limited amount of attention to spread across what it reads. Every extra token spends some of it. The technical reason: in a transformer, every token relates to every other token, so 10,000 tokens means 100 million relationships, and the model&#39;s focus gets stretched thinner as text grows. Models also see shorter texts more often in training, so they have less practice with very long ones.</p>
+<p><strong>3. Cost and speed.</strong> You pay for every token on every turn, and longer inputs take longer to process. An agent that drags 300,000 tokens of old files along pays for them again on every step.</p>
+<p><strong>4. Bigger windows do not fix it.</strong> Claude now has a 1 million token window, but Anthropic expects windows of every size to suffer from clutter and relevance problems for the foreseeable future. A bigger desk still gets messy.</p>
+<h2 id="what-goes-into-the-context-window">What goes into the context window</h2>
+<figure data-embed="node/039c7fe9-ce74"><figcaption>Anatomy of a context window · seven parts, three behaviours</figcaption></figure>
+<p>Think of the window in two halves. The top is set once and reused: write it carefully and keep it short. The bottom grows every turn, and that is where most of the engineering happens.</p>
+<table><thead><tr><th>Part</th><th>What it is</th><th>Good practice</th></tr></thead><tbody><tr><td>System prompt</td><td>The standing instructions: who the agent is, how to behave, what output looks like</td><td>Clear, simple language at the &quot;right altitude&quot; (below); split into sections with headings or XML tags</td></tr><tr><td>Tool definitions</td><td>Descriptions of each tool the agent can call</td><td>Few tools, no overlap, obvious names, outputs that return only what is needed</td></tr><tr><td>Examples</td><td>Sample inputs and ideal outputs</td><td>A handful of varied, typical examples beats a long list of edge-case rules</td></tr><tr><td>Retrieved data and notes</td><td>Documents, database rows, memory files, saved notes</td><td>Fetch just in time with tools rather than pasting everything up front</td></tr><tr><td>Message history</td><td>Everything said so far</td><td>Summarise (compact) when it gets long</td></tr><tr><td>Tool results</td><td>Raw output from files read, searches, API calls</td><td>Clear old ones the agent has already used; it can re-fetch if needed</td></tr><tr><td>Latest message</td><td>The current request</td><td>Be specific about the goal and what done looks like</td></tr></tbody></table>
+<p>How lopsided can it get? In Anthropic&#39;s cookbook test, a research agent read eight long documents with no context management. By the end its window held about 335,000 tokens, and 96% of that was raw file contents it had already read and taken notes on.</p>
+<h2 id="the-techniques-with-before-and-after-examples">The techniques, with before and after examples</h2>
+<p>There are eight techniques. The first four make each turn&#39;s context better. The last four keep long-running work from drowning in its own history.</p>
+<h3 id="1-write-the-system-prompt-at-the-right-altitude">1. Write the system prompt at the right altitude</h3>
+<figure data-embed="node/793d8627-41c1"><figcaption>System prompt altitude · too rigid, right, too vague</figcaption></figure>
+<p>Anthropic describes two failure modes. One is hardcoding brittle if-this-then-that logic to force exact behaviour; it breaks on the first case you did not predict and is painful to maintain. The other is vague, high-level guidance that gives the model nothing concrete, or assumes it knows things it does not. Aim for the middle: specific enough to steer, flexible enough to let the model use judgment.</p>
+<p><strong>Before (too rigid):</strong></p>
+<pre><code>If the customer asks about a refund AND the order is older than 14 days AND
+the item is in category B AND the customer has fewer than 3 orders, reply
+with template R-7. If the order is older than 14 days AND category A, reply
+with template R-9. If...</code></pre>
+<p><strong>Before (too vague):</strong></p>
+<pre><code>You are a helpful support agent. Be friendly and solve problems.</code></pre>
+<p><strong>After (right altitude):</strong></p>
+<pre><code>&lt;role&gt;
+You handle customer support for Northwind, an online homeware shop.
+&lt;/role&gt;
+
+&lt;goals&gt;
+Resolve the customer&#39;s issue in as few messages as possible, while protecting
+the business from refund abuse.
+&lt;/goals&gt;
+
+&lt;refund_policy&gt;
+- Full refunds within 30 days of delivery, no questions asked.
+- After 30 days, offer store credit instead, unless the item arrived damaged.
+- Anything over 200 GBP, or anything unusual, goes to a human: use escalate().
+&lt;/refund_policy&gt;
+
+&lt;tone&gt;
+Warm, plain English, no corporate filler. Short paragraphs.
+&lt;/tone&gt;
+
+&lt;output&gt;
+End every reply with the single next step the customer should take.
+&lt;/output&gt;</code></pre>
+<p>Why it works: it gives goals and principles the model can apply to new situations, one clear rule for the risky edge (escalate), and sections that are easy to update. Anthropic&#39;s advice is to start with a minimal prompt on the best model, test it, then add instructions only where it actually fails. Minimal does not mean short; it means nothing unnecessary.</p>
+<h3 id="2-give-it-a-small-set-of-clear-tools">2. Give it a small set of clear tools</h3>
+<p>Tools are the contract between the agent and the world. Anthropic flags bloated toolsets as one of the most common failures. Their test: if a human engineer could not say for sure which tool to use in a given moment, the agent will not do better.</p>
+<p><strong>Before:</strong> 14 tools, including <code>get_customer</code>, <code>fetch_customer</code>, <code>lookup_user</code>, <code>search_customers</code> and <code>customer_details</code>. Each returns the full customer record: 4,000 tokens of addresses, every past order, internal flags and timestamps.</p>
+<p><strong>After:</strong> 4 tools with distinct jobs.</p>
+<pre><code>find_customer(email or order_id)  -&gt; id, name, plan, open tickets (about 80 tokens)
+get_orders(customer_id, last_n=5) -&gt; date, item, status, total for each
+issue_refund(order_id, reason)    -&gt; confirmation number
+escalate(summary)                 -&gt; hands the case to a human</code></pre>
+<p>The agent picks the right tool every time, and each call adds 80 tokens instead of 4,000. Over a 30-turn conversation that is the difference between about 2,400 and 120,000 tokens of customer data sitting in the window.</p>
+<h3 id="3-show-a-few-great-examples-not-a-rulebook">3. Show a few great examples, not a rulebook</h3>
+<p>Anthropic strongly recommends examples, but warns against stuffing in a long list of edge cases. For a model, a good example works like a picture worth a thousand words of rules.</p>
+<p><strong>Before:</strong> 40 rules covering every odd situation: &quot;if the customer writes in all caps...&quot;, &quot;if they mention a competitor...&quot;, &quot;if they use an emoji...&quot;.</p>
+<p><strong>After:</strong> 3 to 5 varied, typical examples of ideal replies: one simple refund, one angry customer with a damaged item, one request that should be escalated. The model learns the pattern (tone, length, structure, when to escalate) and applies it to cases you never listed.</p>
+<h3 id="4-retrieve-just-in-time">4. Retrieve just in time</h3>
+<p>Instead of loading everything up front, give the agent lightweight pointers (file paths, saved queries, links) and tools to open them when needed. This is how Claude Code works: it does not read your whole codebase into memory. It searches for file names and text, opens what it needs, and uses commands like <code>head</code> and <code>tail</code> to peek at large files without loading them whole.</p>
+<p><strong>Before (everything up front):</strong> paste a 200-file codebase into the prompt. Around 400,000 tokens, most irrelevant to the bug, and the important file is buried in the middle.</p>
+<p><strong>After (just in time):</strong></p>
+<pre><code>Task: &quot;Users can&#39;t reset their password&quot;
+1. search files for &quot;reset&quot;      -&gt; finds auth/reset.ts, emails/reset.html
+2. open auth/reset.ts             -&gt; 180 lines
+3. search for &quot;sendResetEmail&quot;    -&gt; finds lib/mailer.ts
+4. open the 40 relevant lines of lib/mailer.ts
+Total loaded: about 3,000 tokens, all relevant.</code></pre>
+<p>Names and folders carry meaning too. A file called <code>test_utils.py</code> in a <code>tests</code> folder means something different from the same name in <code>src/core_logic/</code>. File sizes hint at complexity and dates hint at relevance, so the agent can explore layer by layer, a pattern Anthropic calls progressive disclosure.</p>
+<p>The trade-off: exploring is slower than having everything ready, and a poorly guided agent can wander. So many agents use a <strong>hybrid</strong>: a little context loaded up front (Claude Code always reads your CLAUDE.md file) plus tools to fetch the rest. The hybrid suits steadier material like legal or finance work, where some reference text is always needed.</p>
+<h3 id="5-compaction-summarise-when-the-window-gets-full">5. Compaction: summarise when the window gets full</h3>
+<p>When the conversation nears its limit, the model writes a high-quality summary of everything so far, and a fresh window starts from that summary. In Claude Code, the summary keeps architecture decisions, unresolved bugs and implementation details, drops repeated tool output, and carries on with the five most recently opened files.</p>
+<p>The skill is choosing what to keep. Too aggressive, and a detail that matters later is lost. Anthropic&#39;s advice: first tune the summary prompt to keep everything relevant, then trim the excess.</p>
+<p><strong>What a good compaction summary looks like:</strong></p>
+<pre><code>## Task
+Migrate the billing service from Stripe v2 to v3.
+
+## Done
+- Updated payment-intent creation in billing/charge.ts
+- Webhook handler now verifies v3 signatures (billing/webhooks.ts)
+
+## Decisions
+- Keep v2 refunds path until all old invoices settle (agreed with user)
+
+## Open problems
+- Test test_partial_refund fails: amount off by 1 cent, likely rounding
+
+## Next step
+Fix rounding in billing/money.ts, then run the full test suite.</code></pre>
+<p>In Anthropic&#39;s cookbook test, compaction turned a 169,000-token window into a summary of about 2,800 tokens, and the agent finished the task. The summary kept all three high-level facts the test checked for, but none of three obscure table values. That is the trade: the substance survives, exact small details may not. You can also give your own summary instructions, for example telling it to keep every number with its source.</p>
+<h3 id="6-clear-old-tool-results">6. Clear old tool results</h3>
+<p>Once the agent has read a file and acted on it, the raw text rarely needs to stay. Tool-result clearing swaps old results for a short placeholder but keeps the record that the call happened, so the agent knows it can re-run it. Anthropic calls this one of the safest, lightest forms of compaction, and it costs nothing extra to run.</p>
+<p><strong>Before:</strong> after reading 8 documents, the window still holds all 8 in full: about 323,000 tokens.</p>
+<p><strong>After:</strong></p>
+<pre><code>[tool_use]    read_file(/research/celegans_review.md)
+[tool_result] [cleared to save context]
+[tool_use]    read_file(/research/mouse_review.md)
+[tool_result] [cleared to save context]
+...
+[tool_use]    read_file(/research/rhesus_review.md)
+[tool_result] (full text: most recent, so kept)</code></pre>
+<p>In the cookbook test this kept the peak near 173,000 tokens instead of 335,000. The catch: if the agent&#39;s notes were thin, it has to read some files again.</p>
+<h3 id="7-take-structured-notes-outside-the-window">7. Take structured notes outside the window</h3>
+<p>The agent regularly writes notes to a file (a to-do list, NOTES.md, a memory folder) and reads them back later. The notes survive summaries, restarts and new sessions.</p>
+<p>Anthropic&#39;s favourite example is Claude playing Pokemon. Without being told how, it kept running tallies across thousands of game steps, such as how many steps it had spent training on one route and how many levels it had gained toward a target. It drew maps of explored areas and kept notes on which attacks worked against which opponents. After a context reset, it read its notes and carried on with multi-hour plans.</p>
+<p><strong>A practical NOTES.md for a long task:</strong></p>
+<pre><code># NOTES.md: competitor pricing research
+## Goal
+Table of 12 competitors: plans, prices, free tier, last checked date.
+
+## Progress
+- [x] 1-7 done (see pricing.csv)
+- [ ] 8. Acme Data: pricing page needs login, try their docs
+- [ ] 9-12 not started
+
+## Learnings
+- Most sites hide enterprise prices; record &quot;contact sales&quot;.
+- Prices in EUR on 3 sites; converted at the date checked.</code></pre>
+<p>With Claude&#39;s API, the memory tool does this as a file folder the agent manages itself. In the cookbook, a second session that could read the first session&#39;s notes opened 4 documents instead of 8 and peaked at about 173,000 tokens instead of 334,000.</p>
+<h3 id="8-split-work-across-subagents">8. Split work across subagents</h3>
+<p>A lead agent keeps the high-level plan and hands focused jobs to subagents, each with its own clean window. A subagent might read tens of thousands of tokens, but it reports back only a condensed summary, often 1,000 to 2,000 tokens. The messy search detail stays isolated; the lead just synthesises. Anthropic found this beat a single agent substantially on complex research.</p>
+<p><strong>Example:</strong> &quot;Compare the AI data-licensing deals of 5 companies.&quot;</p>
+<pre><code>Lead agent: makes plan, spawns 5 subagents
+  Subagent A: company 1 -&gt; reads 14 pages (60,000 tokens) -&gt; returns 1,500-token brief
+  Subagent B: company 2 -&gt; reads 9 pages  (40,000 tokens) -&gt; returns 1,200-token brief
+  ... (C, D, E run in parallel)
+Lead agent sees: about 7,000 tokens of briefs, not 250,000 tokens of web pages
+Lead agent writes the comparison.</code></pre>
+<h3 id="which-long-task-technique-to-use">Which long-task technique to use</h3>
+<table><thead><tr><th>Technique</th><th>Best for</th><th>What it costs</th><th>What it does not solve</th></tr></thead><tbody><tr><td>Compaction</td><td>Long back-and-forth conversations</td><td>One extra model call to summarise; small details can be lost</td><td>Memory across separate sessions</td></tr><tr><td>Tool-result clearing</td><td>Agents that read lots of files or API output</td><td>Free; agent may need to re-fetch</td><td>Long conversation text, or anything across sessions</td></tr><tr><td>Notes and memory</td><td>Step-by-step projects with clear milestones; work spanning days</td><td>Extra tool calls; only as good as what it chose to write</td><td>Growth within one session</td></tr><tr><td>Subagents</td><td>Research and analysis where parallel digging pays off</td><td>More total tokens across all agents</td><td>Tasks that need one continuous train of thought</td></tr></tbody></table>
+<p>They combine. A long-running research agent might clear old file reads, compact the conversation when it passes a threshold, and save findings to memory for next week. Anthropic reported that context editing alone improved a long-task evaluation by 29%, and adding the memory tool cut token use by 84% across a hundred-turn run.</p>
+<h2 id="worked-examples-end-to-end">Worked examples, end to end</h2>
+<h3 id="example-a-a-claudemd-for-a-website-repo">Example A: a CLAUDE.md for a website repo</h3>
+<p>Claude Code loads CLAUDE.md into every session automatically, so it is the always-on part of the hybrid approach. Everything in it is paid for on every turn, so it should hold only what Claude cannot easily discover by itself and gets wrong without.</p>
+<p><strong>Bad CLAUDE.md:</strong> 600 lines. A full copy of the README, every folder explained, the whole design system pasted in, a changelog, and 50 &quot;never do X&quot; rules collected over months.</p>
+<p><strong>Good CLAUDE.md (about 40 lines):</strong></p>
+<pre><code># Project: marketing site (Next.js 15, Tailwind, deployed on Vercel)
+
+## Commands
+- pnpm dev        start locally on :3000
+- pnpm test       unit tests (Vitest)
+- pnpm lint       must pass before any commit
+
+## Where things live
+- app/            pages (App Router)
+- components/ui/  shared components; reuse before creating new ones
+- content/        page copy in MDX; edit copy here, not in components
+- docs/brand.md   colours, fonts, voice: read before any visual change
+
+## Conventions
+- Server components by default; add &quot;use client&quot; only when needed
+- Colours come from tailwind.config.ts tokens, never hex in components
+- British English in all copy
+
+## Watch out for
+- The contact form posts to /api/lead, which emails via Resend.
+  Never change its field names: the CRM import depends on them.
+
+## Done means
+lint + tests pass, page checked at 375px and 1440px widths.</code></pre>
+<p>What makes it work: commands Claude would otherwise guess, a map of where things live, pointers to longer docs (docs/brand.md) instead of pasting them in, the one fragile thing that is not obvious from the code, and a clear definition of done. The brand guide is fetched just in time, only when a visual change happens.</p>
+<h3 id="example-b-a-customer-support-agent-one-turn-at-a-time">Example B: a customer support agent, one turn at a time</h3>
+<p>A customer writes: &quot;My lamp arrived broken, order 4471.&quot; Here is what the well-engineered agent&#39;s window holds at that moment:</p>
+<table><thead><tr><th>Layer</th><th>Contents</th><th>Approx. tokens</th></tr></thead><tbody><tr><td>System prompt</td><td>Role, goals, refund policy, tone, output rule (the right-altitude prompt from technique 1)</td><td>400</td></tr><tr><td>Tools</td><td>find_customer, get_orders, issue_refund, escalate</td><td>600</td></tr><tr><td>Examples</td><td>3 ideal replies: simple refund, damaged item, escalation</td><td>700</td></tr><tr><td>Retrieved</td><td>find_customer result: name, plan, 0 open tickets</td><td>80</td></tr><tr><td>Retrieved</td><td>get_orders(last 1): lamp, delivered 2 days ago, 45 GBP</td><td>60</td></tr><tr><td>History</td><td>Summary of earlier chat today: &quot;asked about delivery times, resolved&quot;</td><td>50</td></tr><tr><td>Latest</td><td>The customer&#39;s message</td><td>20</td></tr><tr><td><strong>Total</strong></td><td></td><td><strong>about 1,900</strong></td></tr></tbody></table>
+<p>The badly engineered version of the same agent loads the full customer record (4,000 tokens), every past order (6,000), the whole 30-page policy PDF (15,000), and the raw history of every earlier chat (8,000): about 33,000 tokens. It is slower, about 17 times more expensive per turn, and more likely to quote the wrong policy section because the right one is buried.</p>
+<h3 id="example-c-a-research-agent-that-runs-for-hours">Example C: a research agent that runs for hours</h3>
+<p>Task: &quot;Build a market map of 40 AI training-data companies: what they sell, who they sell to, pricing model, notable deals.&quot;</p>
+<ol><li><p><strong>Plan and notes first.</strong> The lead agent writes RESEARCH_PLAN.md with the 40 companies, the fields to fill, and a progress checklist. This file is the agent&#39;s anchor if anything resets.</p></li><li><p><strong>Fan out.</strong> It spawns subagents in batches of 5, each covering 8 companies. Each subagent searches, reads 10 to 30 pages, and returns a compact table of rows plus source links, about 1,500 tokens, instead of the 100,000+ tokens it read.</p></li><li><p><strong>Clear as it goes.</strong> Old search results and page reads in the lead&#39;s window are cleared automatically once used; their facts already live in the returned tables and in market_map.csv.</p></li><li><p><strong>Compact when long.</strong> After several hours of back-and-forth with you (&quot;add a column for funding&quot;, &quot;drop consumer apps&quot;), the conversation is compacted. Custom summary instructions tell it to keep every decision about scope and columns.</p></li><li><p><strong>Remember for next time.</strong> Key findings and your preferences (&quot;exclude consumer apps&quot;, &quot;prices in USD&quot;) go into memory files, so next month&#39;s refresh starts from where this one ended rather than from zero.</p></li></ol>
+<h3 id="example-d-handing-work-between-agents-claude-code-codex-hermes">Example D: handing work between agents (Claude Code, Codex, Hermes)</h3>
+<p>When you switch tools mid-project, the new agent starts with an empty window. Copy-pasting the old chat is the worst option: long, noisy, full of dead ends. Write a short handoff file instead, ideally by asking the outgoing agent to produce it.</p>
+<p><strong>Prompt to the outgoing agent:</strong></p>
+<pre><code>Write HANDOFF.md for another AI agent who will continue this work with no
+access to our chat. Include: the goal, what is done (with file paths), key
+decisions and why, what failed and should not be retried, open problems,
+and the exact next step. Under 300 words. No narrative.</code></pre>
+<p><strong>What a good HANDOFF.md looks like:</strong></p>
+<pre><code># HANDOFF: lead-capture form rebuild
+Goal: replace the old contact form with a 3-step form that writes to the CRM.
+
+Done
+- components/LeadForm.tsx: steps 1-2 built and tested
+- api/lead/route.ts: validation with zod, posts to CRM sandbox
+
+Decisions
+- Kept the old field names (CRM import depends on them)
+- No CAPTCHA yet; rate-limit by IP instead (user&#39;s call)
+
+Failed, don&#39;t retry
+- react-hook-form multi-step wizard plugin: breaks server actions
+
+Open
+- Step 3 (budget) not built; design in docs/form-spec.md
+
+Next step
+Build step 3 in LeadForm.tsx, then run pnpm test.</code></pre>
+<p>The incoming agent reads 300 words and is productive in its first turn. Keep HANDOFF.md in the repo and have every agent update it before stopping, and it becomes shared memory that works across tools.</p>
+<h3 id="example-e-context-engineering-in-everyday-claude-chats">Example E: context engineering in everyday Claude chats</h3>
+<p>You do not need to build agents for this to matter. The same rules apply in the Claude app:</p>
+<ul><li><p><strong>Start a fresh chat for a new topic.</strong> A 200-message chat about your website will muddy a question about your tax return.</p></li><li><p><strong>Attach only the relevant files.</strong> One 5-page brief beats a 300-page folder dump.</p></li><li><p><strong>Use Projects for standing context.</strong> Put lasting background (brand guide, product facts) in a Project&#39;s knowledge and instructions, so you are not re-pasting it.</p></li><li><p><strong>Ask for a summary before switching.</strong> At the end of a long chat: &quot;Summarise the decisions and open questions in 10 bullets.&quot; Paste that into the next chat.</p></li><li><p><strong>Point, do not paste.</strong> &quot;The pricing is in the second table of the attached PDF&quot; focuses attention better than pasting the whole PDF into the message as well.</p></li></ul>
+<h2 id="checklist">Checklist</h2>
+<p>Before you ship an agent, or start a long piece of work with one:</p>
+<ul><li data-checked="false"><p><input type="checkbox" disabled> Is the system prompt at the right altitude: goals and principles, not a wall of if-then rules or a vague one-liner?</p></li><li data-checked="false"><p><input type="checkbox" disabled> Is it split into clear sections (role, rules, tools, output)?</p></li><li data-checked="false"><p><input type="checkbox" disabled> Could a person always tell which tool to use? Are there any overlapping tools to merge or remove?</p></li><li data-checked="false"><p><input type="checkbox" disabled> Do tools return only the fields the agent needs?</p></li><li data-checked="false"><p><input type="checkbox" disabled> Are there 3 to 5 varied, typical examples instead of a long edge-case list?</p></li><li data-checked="false"><p><input type="checkbox" disabled> Is data fetched just in time with search and read tools, rather than pasted up front?</p></li><li data-checked="false"><p><input type="checkbox" disabled> Is the always-loaded part (system prompt, CLAUDE.md) short, with links to longer docs?</p></li><li data-checked="false"><p><input type="checkbox" disabled> Is there a plan for long sessions: compaction, clearing old tool results, or both?</p></li><li data-checked="false"><p><input type="checkbox" disabled> Does the agent keep notes or memory for work that spans hours or days?</p></li><li data-checked="false"><p><input type="checkbox" disabled> Would subagents help, for parallel research with compact reports back?</p></li><li data-checked="false"><p><input type="checkbox" disabled> Have you tested with real, messy tasks and added instructions only where it actually failed?</p></li></ul>
+<h2 id="common-mistakes">Common mistakes</h2>
+<table><thead><tr><th>Mistake</th><th>Why it hurts</th><th>Fix</th></tr></thead><tbody><tr><td>&quot;The window is 1M tokens, so I&#39;ll put everything in&quot;</td><td>Context rot: precision drops as the window fills, and you pay for every token every turn</td><td>Load less, fetch on demand</td></tr><tr><td>Pasting whole documents &quot;just in case&quot;</td><td>Buries the relevant part</td><td>Give a pointer and a read tool</td></tr><tr><td>Ten tools that do nearly the same thing</td><td>The agent picks the wrong one or wavers</td><td>Merge into a few distinct tools</td></tr><tr><td>Rules for every edge case</td><td>Brittle, contradictory, hard to maintain</td><td>Principles plus a few examples</td></tr><tr><td>Never clearing tool output</td><td>Old file reads dominate the window</td><td>Tool-result clearing</td></tr><tr><td>Over-aggressive summaries</td><td>A detail that matters later is gone</td><td>Tune the compaction prompt for recall first, then trim</td></tr><tr><td>Letting the agent save anything to memory</td><td>Wrong or private facts get reused later</td><td>Guide what it saves; review memory files</td></tr><tr><td>Copy-pasting a whole chat into a new agent</td><td>Noise, dead ends, contradictions</td><td>A short handoff file</td></tr></tbody></table>
+<p>The rule that ties it together, in Anthropic&#39;s words: &quot;do the simplest thing that works.&quot; Models are getting better at managing their own context, so expect to need less hand-holding over time, but treating context as precious and finite will stay the core skill.</p>
+<h2 id="sources">Sources</h2>
+<ul><li><p><a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">Effective context engineering for AI agents, Anthropic Engineering</a></p></li><li><p><a href="https://platform.claude.com/cookbook/tool-use-context-engineering-context-engineering-tools">Context engineering: memory, compaction, and tool clearing, Claude Cookbook</a></p></li><li><p><a href="https://blakecrosley.com/zh-Hant/blog/context-compaction-training-objective">Context compaction as a training objective, Blake Crosley (29% and 84% figures)</a></p></li><li><p><a href="https://www.developersdigest.tech/blog/context-engineering-for-agents-explained">Context engineering for agents explained, Developers Digest</a></p></li><li><p><a href="https://agentic-ai.readthedocs.io/en/latest/ContextEngineering/anthropic/">Anthropic context engineering notes, Agentic AI docs</a></p></li><li><p><a href="https://www.theneuron.ai/explainer-articles/anthropic-just-changed-the-rules-for-working-with-ai-and-prompting-isnt-the-main-game-anymore">Anthropic&#39;s context engineering guide explained, The Neuron</a></p></li><li><p><a href="https://www.eweek.com/fr/news/anthropic-context-engineering-building-ai-workflows/">Anthropic context engineering coverage, eWeek</a></p></li></ul>
